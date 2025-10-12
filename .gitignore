@@ -1,0 +1,77 @@
+# HopScan - Email Header Analysis Tool
+# Python .gitignore
+
+# --- Python cache and compiled files ---
+__pycache__/
+*.py[cod]
+*$py.class
+
+# --- Virtual environments ---
+venv/
+.env/
+.env*/ 
+.venv/
+.venv*/
+
+# --- IDE and editor settings ---
+.vscode/
+.idea/
+*.swp
+*.swo
+*.bak
+
+# --- OS-generated files ---
+.DS_Store
+Thumbs.db
+
+# --- Test and sample data ---
+tests/sample*.eml
+tests/*.txt
+*.eml
+*.msg
+*.log
+*.tmp
+
+# --- Output / reports ---
+output/
+reports/
+logs/
+*.csv
+*.json
+*.pdf
+
+# --- Build / distribution directories ---
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# --- Coverage / testing ---
+.coverage
+htmlcov/
+.tox/
+.pytest_cache/
+
+# --- GUI (if added later) ---
+__pycache__/
+*.ui
+*.qrc
+gui/__pycache__/
+gui/*.pyc
+gui/*.bak
+
+# --- Jupyter / notebooks (optional learning artifacts) ---
+*.ipynb
+.ipynb_checkpoints/
+
+# --- Environment / secrets ---
+*.env
+.env.local
+config.json
+settings.json
+
+# --- Backup or temp files ---
+*.old
+*.orig
+*.tmp
+*.bak
