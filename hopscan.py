@@ -24,7 +24,13 @@ def main():
         if hop.timestamp:
             print(f"Timestamp: {hop.timestamp}")
         if hop.ip_candidates:
-            print(f"IP Candidates: {', '.join(hop.ip_candidates)}")
+            print(f"\nIP Candidates: {', '.join(hop.ip_candidates)}")
+            if hop.private_ips:
+                print(f"  Private IPs: {', '.join(hop.private_ips)}")
+            if hop.valid_ips:
+                print(f"  Valid Public IPs: {', '.join(hop.valid_ips)}")
+            else:
+                print("  Valid Public IPs: None found")
         else:
             print("IP Candidates: None found")
 
