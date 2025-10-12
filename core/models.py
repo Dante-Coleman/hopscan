@@ -1,4 +1,3 @@
-# core/models.py
 from dataclasses import dataclass, field
 from datetime import datetime
 from typing import List, Optional, Dict, Any
@@ -18,14 +17,12 @@ class ReceivedHop:
     invalid_ips: List[str] = field(default_factory=list)
     timestamp: Optional[datetime] = None
 
-"""
 @dataclass
 class AuthResults:
     spf: Optional[str] = None
     dkim: Optional[str] = None
     dmarc: Optional[str] = None
     raw: List[str] = field(default_factory=list)
-"""
 
 @dataclass
 class AnalysisResult:
@@ -35,6 +32,6 @@ class AnalysisResult:
     return_path_domain: Optional[str] = None
     reply_to_domain: Optional[str] = None
     sender_domain: Optional[str] = None
-#    auth_results: AuthResults = field(default_factory=AuthResults)
+    auth_results: AuthResults = field(default_factory=AuthResults)
     flags: Dict[str, Any] = field(default_factory=dict)
     score: int = 0
