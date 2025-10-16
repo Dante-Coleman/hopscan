@@ -25,9 +25,9 @@ venv/
 Thumbs.db
 
 # --- Test and sample data ---
-tests/sample*.eml
-tests/*.txt
-*.eml
+# tests/sample*.eml
+# tests/*.txt
+# *.eml
 *.msg
 *.log
 *.tmp
