@@ -2,6 +2,7 @@ import argparse
 from core.loader import load_email
 from core.parser import extract_headers, extract_received_hops
 from email.message import Message
+from core.analyzer import analyze_email
 
 def main():
     parser = argparse.ArgumentParser(
@@ -33,6 +34,11 @@ def main():
                 print("  Valid Public IPs: None found")
         else:
             print("IP Candidates: None found")
+
+    result = analyze_email(msg, all_headers, hops)
+    print(f"\nScore: {result.score}")
+    print(f"Verdict: {result.flags['verdict']}")
+    print(f"Details: {result.flags['verdict_description']}")
 
 if __name__ == "__main__":
     main()
