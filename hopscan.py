@@ -3,42 +3,48 @@ from core.loader import load_email
 from core.parser import extract_headers, extract_received_hops
 from email.message import Message
 from core.analyzer import analyze_email
+from colorama import init, Fore, Back, Style
+
+init(autoreset=True)
 
 def main():
+    """Main function to run HopScan from command line."""
     parser = argparse.ArgumentParser(
         description="HopScan - Email header analyzer"
     )
     parser.add_argument("email_file", help="Path to .eml or .txt email file")
     args = parser.parse_args()
-
     msg: Message = load_email(args.email_file)
-    print("\n=== Extracted Headers: ===")
+    
+    print()
+    print(Fore.WHITE + Back.BLACK + Style.BRIGHT + "EXTRACTED HEADERS:" + Style.RESET_ALL)
     all_headers = extract_headers(msg)
     for header in all_headers:
-        print(f"{header.name}: {header.value}")
+        print(f"{Fore.CYAN}{Style.BRIGHT}{header.name}:{Style.RESET_ALL} {header.value}")
 
-    print("\n=== Received Hops: ===")
+    print()
+    print(Fore.WHITE + Back.BLACK + Style.BRIGHT + "RECEIVED HOPS:" + Style.RESET_ALL)
     hops = extract_received_hops(msg)
     for hop in hops:
-        print(f"\nHop {hop.index + 1}:")
+        print(f"{Fore.GREEN}{Style.BRIGHT}Hop {hop.index + 1}:{Style.RESET_ALL}")
         print(f"Raw: {hop.raw}")
         if hop.timestamp:
             print(f"Timestamp: {hop.timestamp}")
         if hop.ip_candidates:
-            print(f"\nIP Candidates: {', '.join(hop.ip_candidates)}")
+            print(f"IP Candidates: {', '.join(hop.ip_candidates)}")
             if hop.private_ips:
                 print(f"  Private IPs: {', '.join(hop.private_ips)}")
             if hop.valid_ips:
-                print(f"  Valid Public IPs: {', '.join(hop.valid_ips)}")
+                print(f"  Valid Public IPs: {', '.join(hop.valid_ips)}\n")
             else:
-                print("  Valid Public IPs: None found")
+                print("  Valid Public IPs: None found\n")
         else:
-            print("IP Candidates: None found")
+            print("IP Candidates: None found\n")
 
     result = analyze_email(msg, all_headers, hops)
-    print(f"\nScore: {result.score}")
-    print(f"Verdict: {result.flags['verdict']}")
-    print(f"Details: {result.flags['verdict_description']}")
+    print(f"{Fore.WHITE}{Back.BLACK}{Style.BRIGHT}SCORE:{Style.RESET_ALL} {result.score}")
+    print(f"{Fore.WHITE}{Back.BLACK}{Style.BRIGHT}VERDICT:{Style.RESET_ALL} {result.flags['verdict']}")
+    print(f"{Fore.WHITE}{Back.BLACK}{Style.BRIGHT}DETAILS:{Style.RESET_ALL} {result.flags['verdict_description']}")
 
 if __name__ == "__main__":
     main()
