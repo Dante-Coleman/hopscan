@@ -42,6 +42,17 @@ def main():
             print("IP Candidates: None found\n")
 
     result = analyze_email(msg, all_headers, hops)
+
+    print()
+    print(Fore.WHITE + Back.BLACK + Style.BRIGHT + "ANALYSIS RESULTS:" + Style.RESET_ALL)
+    print(f"{Fore.MAGENTA}{Style.BRIGHT}Time Travel Detected:{Style.RESET_ALL} {result.flags['time_travel']}")
+    print(f"{Fore.MAGENTA}{Style.BRIGHT}Authentication Results:{Style.RESET_ALL} {result.auth_results}")
+    print(f"{Fore.MAGENTA}{Style.BRIGHT}From Domain:{Style.RESET_ALL} {result.from_domain}")
+    print(f"{Fore.MAGENTA}{Style.BRIGHT}Reply-To Domain:{Style.RESET_ALL} {result.reply_to_domain}")
+    print(f"{Fore.MAGENTA}{Style.BRIGHT}Return-Path Domain:{Style.RESET_ALL} {result.return_path_domain}")
+    print(f"{Fore.MAGENTA}{Style.BRIGHT}Sender Domain:{Style.RESET_ALL} {result.sender_domain}")
+
+    print()
     print(f"{Fore.WHITE}{Back.BLACK}{Style.BRIGHT}SCORE:{Style.RESET_ALL} {result.score}")
     print(f"{Fore.WHITE}{Back.BLACK}{Style.BRIGHT}VERDICT:{Style.RESET_ALL} {result.flags['verdict']}")
     print(f"{Fore.WHITE}{Back.BLACK}{Style.BRIGHT}DETAILS:{Style.RESET_ALL} {result.flags['verdict_description']}")
