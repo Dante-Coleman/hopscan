@@ -3,6 +3,7 @@ from typing import List, Optional
 from .models import AnalysisResult, ReceivedHop, AuthResults
 from .utils import extract_domain_from_address
 from colorama import init, Fore, Back, Style
+import re
 
 #Scoring dictionary.
 FLAG_SCORES = {
@@ -28,7 +29,7 @@ def detect_time_travel(hops: List[ReceivedHop]) -> bool:
     return False
 
 def parse_auth_headers(headers: List[str]) -> AuthResults:
-    """Parses headers and returns  AuthResults."""
+    """Parses headers and returns AuthResults."""
     auth_results = AuthResults()
     mechanisms = {
         "spf=": "spf",
@@ -36,16 +37,29 @@ def parse_auth_headers(headers: List[str]) -> AuthResults:
         "dmarc=": "dmarc",
     }
     for header_line in headers:
-        normalized = header_line.lower().strip()
-        for key, field_name in mechanisms.items():
-            if key in normalized:
-                if "pass" in normalized:
-                    setattr(auth_results, field_name, "pass")
-                elif "fail" in normalized:
-                    setattr(auth_results, field_name, "fail")
-                else:
-                    setattr(auth_results, field_name, "none")       
+        normalized = re.sub(r'\r?\n\s+', ' ', header_line.lower().strip())
         auth_results.raw.append(header_line)
+
+        #Split by semicolon to isolate each mechanism.
+        parts = [p.strip() for p in normalized.split(';') if '=' in p]
+
+        for part in parts:
+            for key, field_name in mechanisms.items():
+                if key in part:
+                    #Extract the value only for that mechanism.
+                    m = re.search(rf"{key}\s*([a-z\-]+)", part)
+                    if not m:
+                        setattr(auth_results, field_name, "none")
+                        continue
+                    val = m.group(1)
+
+                    # Normalize values.
+                    if val.startswith("pass") and not val.startswith("bestguess"):
+                        setattr(auth_results, field_name, "pass")
+                    elif "fail" in val:
+                        setattr(auth_results, field_name, "fail")
+                    else:
+                        setattr(auth_results, field_name, "none")
     return auth_results
 
 def extract_domains(msg) -> dict:
