@@ -71,17 +71,17 @@ def calculate_score(result: AnalysisResult) -> int:
     #Check auth results and apply scores.
     auth = result.auth_results
     if auth:
-        if not auth.spf:
+        if not auth.spf or auth.spf == "none":
             score += FLAG_SCORES["no_spf"]
         elif auth.spf == "fail":
             score += FLAG_SCORES["spf_fail"]
 
-        if not auth.dkim:
+        if not auth.dkim or auth.dkim == "none":
             score += FLAG_SCORES["no_dkim"]
         elif auth.dkim == "fail":
             score += FLAG_SCORES["dkim_fail"]
 
-        if not auth.dmarc:
+        if not auth.dmarc or auth.dmarc == "none":
             score += FLAG_SCORES["no_dmarc"]
         elif auth.dmarc == "fail":
             score += FLAG_SCORES["dmarc_fail"]
