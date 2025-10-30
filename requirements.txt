@@ -13,14 +13,14 @@
 # - typing        (type hints and annotations)
 
 # Extra:
-#colorama>=0.4.6           # Cross-platform colored CLI output
+colorama>=0.4.6           # Cross-platform colored CLI output
 #tabulate>=0.9.0           # Clean, formatted CLI tables
 #python-dateutil>=2.9.0    # Flexible timestamp parsing for Received headers
 #tqdm>=4.66.0              # Optional: progress bar for multi-file processing
 #rich>=13.7.0              # Optional: beautiful CLI output, better than print()
 
 # Phase 2: Enhanced Analysis
-# geoip2>=4.0.0           # IP geolocation (requires MaxMind DB)
+geoip2>=4.6.0           # IP geolocation using MaxMind GeoLite2 database
 # requests>=2.31.0        # HTTP requests for blacklist/abuse checks
 # dnspython>=2.4.0        # DNS queries for SPF, DKIM, DMARC validation
 
