@@ -20,7 +20,7 @@ colorama>=0.4.6           # Cross-platform colored CLI output
 #rich>=13.7.0              # Optional: beautiful CLI output, better than print()
 
 # Phase 2: Enhanced Analysis
-geoip2>=4.6.0           # IP geolocation using MaxMind GeoLite2 database
+geoip2>=4.6.0           # IP geolocation using MaxMind GeoLite2 databases
 # requests>=2.31.0        # HTTP requests for blacklist/abuse checks
 # dnspython>=2.4.0        # DNS queries for SPF, DKIM, DMARC validation
 

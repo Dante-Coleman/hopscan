@@ -1,9 +1,9 @@
 import argparse
+from email.message import Message
+from colorama import init, Fore, Back, Style
 from core.loader import load_email
 from core.parser import extract_headers, extract_received_hops
-from email.message import Message
 from core.analyzer import analyze_email
-from colorama import init, Fore, Back, Style
 
 init(autoreset=True)
 
@@ -35,7 +35,7 @@ def main():
             if hop.private_ips:
                 print(f"  Private IPs: {', '.join(hop.private_ips)}")
             if hop.valid_ips:
-                print(f"  Valid Public IPs: {', '.join(hop.valid_ips)}\n")
+                print(f"  Valid Public IPs: {', '.join(hop.valid_ips)}, Country: {hop.country}, City: {hop.city}, ASN: {hop.asn}\n")
             else:
                 print("  Valid Public IPs: None found\n")
         else:

@@ -1,9 +1,11 @@
 import re
 import socket
+import geoip2.database
+from datetime import datetime
+from typing import List, Optional, Tuple
+from pathlib import Path
 from email.header import decode_header as _decode_header
 from email.utils import parsedate_to_datetime, parseaddr
-from typing import List, Optional, Tuple
-from datetime import datetime
 
 def extract_ipv4s(text: str) -> list[str]:
     """
@@ -32,6 +34,35 @@ def is_valid_ipv4(ip: str) -> bool:
         return all(0 <= int(octet) <= 255 for octet in octets)
     except (OSError, ValueError):
         return False
+
+current_dir = Path(__file__).parent
+root_dir = current_dir.parent
+db_city_path = root_dir / "databases" / "GeoLite2-City_20251028" / "GeoLite2-City.mmdb"
+db_country_path = root_dir / "databases" / "GeoLite2-Country_20251028" / "GeoLite2-Country.mmdb"
+db_asn_path = root_dir / "databases" / "GeoLite2-ASN_20251101" / "GeoLite2-ASN.mmdb"
+
+def get_valid_ipv4_geolocation(ip: str) -> Optional[tuple]:
+    for valid_ip in [ip]:
+        try:
+            with geoip2.database.Reader(db_city_path) as city_reader:
+                city_response = city_reader.city(valid_ip)
+                city = city_response.city.name or None
+            with geoip2.database.Reader(db_country_path) as country_reader:
+                country_response = country_reader.country(valid_ip)
+                country = country_response.country.name or None
+            return city, country
+        except Exception:
+            continue
+
+def get_valid_ipv4_asn(ip: str) -> Optional[str]:
+    for valid_ip in [ip]:
+        try:
+            with geoip2.database.Reader(db_asn_path) as asn_reader:
+                asn_response = asn_reader.asn(valid_ip)
+                asn = asn_response.autonomous_system_organization
+                return str(asn)
+        except Exception:
+            continue
     
 def is_private_ipv4(addr: str) -> bool:
     """Detect RFC1918 private IPv4 ranges."""

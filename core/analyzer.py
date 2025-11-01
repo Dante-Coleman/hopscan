@@ -1,9 +1,9 @@
+import re
 from datetime import datetime
 from typing import List, Optional
-from .models import AnalysisResult, ReceivedHop, AuthResults
-from .utils import extract_domain_from_address
 from colorama import init, Fore, Back, Style
-import re
+from .models import AnalysisResult, ReceivedHop, AuthResults
+from .utils import extract_domain_from_address, get_valid_ipv4_geolocation, get_valid_ipv4_asn
 
 #Scoring dictionary.
 FLAG_SCORES = {
@@ -113,6 +113,27 @@ def analyze_email(msg, headers: List, hops: List[ReceivedHop]) -> AnalysisResult
 
     #Was time travel detected?
     result.flags["time_travel"] = detect_time_travel(hops)
+
+    #What geolocations were found?
+    for hop in result.received_hops:
+        for ip in hop.valid_ips:
+            geo = get_valid_ipv4_geolocation(ip)
+            if geo:
+                city, country = geo
+                hop.city = city
+                hop.country = country
+            else:
+                hop.city = None
+                hop.country = None
+
+    #What ASNs were found?
+    for hop in result.received_hops:
+        for ip in hop.valid_ips:
+            asn = get_valid_ipv4_asn(ip)
+            if asn:
+                hop.asn = asn
+            else:
+                hop.asn = None
 
     #What were the auth results?
     auth_headers = [h.value for h in headers if h.name.lower() == "authentication-results"]

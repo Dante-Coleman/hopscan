@@ -16,6 +16,9 @@ class ReceivedHop:
     private_ips: List[str] = field(default_factory=list)
     invalid_ips: List[str] = field(default_factory=list)
     timestamp: Optional[datetime] = None
+    city: Optional[str] = None
+    country: Optional[str] = None
+    asn: Optional[str] = None
 
 @dataclass
 class AuthResults:

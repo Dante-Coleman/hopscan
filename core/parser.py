@@ -1,9 +1,10 @@
+import re
 from email.message import Message
 from typing import List
 from collections import OrderedDict
 from .models import Header, ReceivedHop
 from .utils import decode_header, extract_ipv4s, parse_email_date, is_private_ipv4
-import re
+
 
 def extract_headers(msg: Message) -> List[Header]:
     """
