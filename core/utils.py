@@ -35,6 +35,7 @@ def is_valid_ipv4(ip: str) -> bool:
     except (OSError, ValueError):
         return False
 
+#Database pathing.
 current_dir = Path(__file__).parent
 root_dir = current_dir.parent
 db_city_path = root_dir / "databases" / "GeoLite2-City_20251028" / "GeoLite2-City.mmdb"
@@ -42,6 +43,12 @@ db_country_path = root_dir / "databases" / "GeoLite2-Country_20251028" / "GeoLit
 db_asn_path = root_dir / "databases" / "GeoLite2-ASN_20251101" / "GeoLite2-ASN.mmdb"
 
 def get_valid_ipv4_geolocation(ip: str) -> Optional[tuple]:
+    """Get geolocation (city, country) for a valid IPv4 address.
+
+    ip: IPv4 address string.
+
+    Returns: Tuple of (city, country) or None if not found/invalid.
+    """
     for valid_ip in [ip]:
         try:
             with geoip2.database.Reader(db_city_path) as city_reader:
@@ -55,6 +62,12 @@ def get_valid_ipv4_geolocation(ip: str) -> Optional[tuple]:
             continue
 
 def get_valid_ipv4_asn(ip: str) -> Optional[str]:
+    """Get ASN organization for a valid IPv4 address.
+
+    ip: IPv4 address string.
+    
+    Returns: ASN organization string or None if not found/invalid.
+    """
     for valid_ip in [ip]:
         try:
             with geoip2.database.Reader(db_asn_path) as asn_reader:
