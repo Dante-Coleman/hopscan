@@ -1,0 +1,4 @@
+All rights reserved.
+
+This repository and its contents are the intellectual property of Dante Coleman.
+No part of this codebase may be copied, modified, or redistributed without explicit permission.
