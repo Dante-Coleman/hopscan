@@ -78,6 +78,16 @@ Email analysis tool written in Python. Scan **.eml** and **.txt** files for head
 - Add feature: Caching for large data volumes.
 - Add feature: GUI.
 ---
+### License
+All rights reserved.
+
+This repository and its contents are the intellectual property of Dante Coleman.
+No part of this codebase may be copied, modified, or redistributed without explicit permission.
+
+This project uses GeoLite2 data created by MaxMind, available from https://www.maxmind.com.
+Each database folder within the /databases directory contains its own license provided by MaxMind and is governed by the MaxMind End User License Agreement.
+
+---
 ### Attribution
 This project uses GeoLite2 data created by [MaxMind](https://www.maxmind.com).
 
