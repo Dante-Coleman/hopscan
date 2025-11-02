@@ -78,6 +78,10 @@ Email analysis tool written in Python. Scan **.eml** and **.txt** files for head
 - Add feature: Caching for large data volumes.
 - Add feature: GUI.
 ---
+### Attribution
+This project uses GeoLite2 data created by [MaxMind](https://www.maxmind.com).
+
+---
 ### Disclaimer
 **hopscan** is a personal and educational project created to explore Python programming and concepts in email header analysis, fraud detection, and cybersecurity research.
 This software is provided “**as is**”, without warranty of any kind, express or implied, including but not limited to the warranties of merchantability, fitness for a particular purpose, and noninfringement.
