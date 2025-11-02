@@ -7,10 +7,14 @@ Email analysis tool written in Python. Scan **.eml** and **.txt** files for head
 ### Current Features
 **1. Extraction**:
 - Headers
+<img width="506" height="240" alt="headers" src="https://github.com/user-attachments/assets/6ee30578-da7f-46eb-a370-968c51f75a2a" />
+
 - Domains
 - Authentication flags
 - Timestamps
 - IP addresses
+<img width="538" height="381" alt="hops" src="https://github.com/user-attachments/assets/43490f9a-ac79-4493-a8a9-18fed1abf95f" />
+
 - Geolocation data (*MaxMind DB 2025*)
 - ASN data (*MaxMind DB 2025*)
 
@@ -18,11 +22,14 @@ Email analysis tool written in Python. Scan **.eml** and **.txt** files for head
 - Time travel (Large penalty)
 - SPF/DKIM/DMARC (Pass, Fail, or None)
 - Private hops count (Small penalty)
+<img width="559" height="128" alt="analysis" src="https://github.com/user-attachments/assets/0ed475d4-9f7e-479d-9e2e-95f3322f44cc" />
 
 **3. Output:**
 - Analysis results, verdict, and description.
 - All domains extracted.
 - CLI; Uses *Colorama* for legibility and color-coding.
+<img width="485" height="55" alt="verdict" src="https://github.com/user-attachments/assets/cb87e8a6-6baa-4c0f-a235-6b6021988cec" />
+
 ---
 ### Usage
 1. Install Python.
