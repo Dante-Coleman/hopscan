@@ -1,7 +1,9 @@
-# hopscan
+# hopscan™
 Email analysis tool written in Python. Scan **.eml** and **.txt** files for header analysis, security scoring, and verdict report.
 
-<img width="500" height="500" alt="hopscanlogo2" src="https://github.com/user-attachments/assets/c40b8f15-3609-451c-8647-145762cba07e" />
+<img width="1000" height="562" alt="hopscanlogo3" src="https://github.com/user-attachments/assets/1ee8b3a0-5080-4bc2-bbeb-e829fdde789b" />
+
+<sub>*hopscan™ logo © 2025 Dante Coleman. All rights reserved.*</sub>
 
 ---
 ### Current Features
@@ -93,10 +95,10 @@ This project uses GeoLite2 data created by [MaxMind](https://www.maxmind.com).
 
 ---
 ### Disclaimer
-**hopscan** is a personal and educational project created to explore Python programming and concepts in email header analysis, fraud detection, and cybersecurity research.
+**hopscan™** is a personal and educational project created to explore Python programming and concepts in email header analysis, fraud detection, and cybersecurity research.
 This software is provided “**as is**”, without warranty of any kind, express or implied, including but not limited to the warranties of merchantability, fitness for a particular purpose, and noninfringement.
 
-The author makes **no guarantees** regarding the accuracy, reliability, or completeness of the results produced by this program. Users are solely responsible for how they interpret or act upon the information generated. **hopscan should not be relied upon as a definitive or automated security solution.**
+The author makes **no guarantees** regarding the accuracy, reliability, or completeness of the results produced by this program. Users are solely responsible for how they interpret or act upon the information generated. **hopscan™ should not be relied upon as a definitive or automated security solution.**
 
 By using this software, you agree that the author shall **not be held liable** for any damages, losses, or consequences arising from the use or misuse of the program, its outputs, or its data sources.
 
