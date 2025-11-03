@@ -1,4 +1,4 @@
-![Python](https://img.shields.io/badge/python-3.13.7-blue)
+![Python](https://img.shields.io/badge/python-3.13+-blue)
 ![Dependencies](https://img.shields.io/badge/dependencies-2-brightgreen)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 # hopscan
@@ -82,7 +82,7 @@ This project requires Python 3.13+ and the following packages (install via `pip 
 
 ---
 ### License
-This project is licensed under the MIT License - see the [LICENSE](LICENSE.txt) file for details.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ---
 
