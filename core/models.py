@@ -18,7 +18,9 @@ class ReceivedHop:
     timestamp: Optional[datetime] = None
     city: Optional[str] = None
     country: Optional[str] = None
-    asn: Optional[str] = None
+    asn: List[Optional[str]] = field(default_factory=list)
+    asn_num: List[Optional[str]] = field(default_factory=list)
+    asn_tier: List[Optional[int]] = field(default_factory=list)
 
 @dataclass
 class AuthResults:

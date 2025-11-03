@@ -76,7 +76,22 @@ def get_valid_ipv4_asn(ip: str) -> Optional[str]:
                 return str(asn)
         except Exception:
             continue
+
+def get_valid_ipv4_asn_num(ip: str) -> Optional[str]:
+    """Get ASN number for a valid IPv4 address.
     
+    ip: IPv4 address string.
+    
+    Returns: ASN number string or None if not found/invalid."""
+    for valid_ip in [ip]:
+        try:
+            with geoip2.database.Reader(db_asn_path) as asn_num_reader:
+                asn_num_response = asn_num_reader.asn(valid_ip)
+                asn_num = asn_num_response.autonomous_system_number
+                return str(asn_num)
+        except Exception:
+            continue
+
 def is_private_ipv4(addr: str) -> bool:
     """Detect RFC1918 private IPv4 ranges."""
     try:

@@ -2,20 +2,23 @@ import re
 from datetime import datetime
 from typing import List, Optional
 from colorama import init, Fore, Back, Style
+from .asn_tiers import asn_tiers
 from .models import AnalysisResult, ReceivedHop, AuthResults
-from .utils import extract_domain_from_address, get_valid_ipv4_geolocation, get_valid_ipv4_asn
+from .utils import extract_domain_from_address, get_valid_ipv4_geolocation, get_valid_ipv4_asn, get_valid_ipv4_asn_num
 
 #Scoring dictionary.
 FLAG_SCORES = {
-    "time_travel": -25,
-    "no_spf": -12,
-    "spf_fail": -15,
-    "no_dkim": -12,
-    "dkim_fail": -15,
-    "no_dmarc": -12,
-    "dmarc_fail": -15,
-    "private_hops": -5,
-    "valid_auth": +20, #All-pass bonus.
+    "time_travel": -50,
+    "no_spf": -3,
+    "spf_fail": -20,
+    "no_dkim": -3,
+    "dkim_fail": -20,
+    "no_dmarc": -3,
+    "dmarc_fail": -20,
+    "valid_auth": +15, #All-pass bonus.
+    "asn_tier_1": +5,
+    "asn_tier_2": +2,
+    "asn_tier_3": -3,
 }
 
 def detect_time_travel(hops: List[ReceivedHop]) -> bool:
@@ -102,6 +105,22 @@ def calculate_score(result: AnalysisResult) -> int:
 
         if all(v == "pass" for v in [auth.spf, auth.dkim, auth.dmarc] if v):
             score += FLAG_SCORES["valid_auth"]
+
+    #Adjust score based on ASN tiers (one score per hop).
+    for hop in result.received_hops:
+        if hop.asn_tier:
+            #Filter out None values.
+            valid_tiers = [t for t in hop.asn_tier if t is not None]
+            if valid_tiers:
+                #Choose the most favorable tier (lowest number).
+                best_tier = min(valid_tiers)
+                if best_tier == 1:
+                    score += FLAG_SCORES["asn_tier_1"]
+                elif best_tier == 2:
+                    score += FLAG_SCORES["asn_tier_2"]
+                elif best_tier == 3:
+                    score += FLAG_SCORES["asn_tier_3"]
+    
     result.score = score
     return score
 
@@ -126,14 +145,26 @@ def analyze_email(msg, headers: List, hops: List[ReceivedHop]) -> AnalysisResult
                 hop.city = None
                 hop.country = None
 
-    #What ASNs were found?
+    #What ASN numbers and orgs were found? What tiers are they?
     for hop in result.received_hops:
+        hop.asn.clear()
+        hop.asn_num.clear()
+        hop.asn_tier.clear()
+
         for ip in hop.valid_ips:
             asn = get_valid_ipv4_asn(ip)
-            if asn:
-                hop.asn = asn
+            hop.asn.append(asn if asn else None)
+
+            asn_num = get_valid_ipv4_asn_num(ip)
+            hop.asn_num.append(asn_num if asn_num else None)
+
+            if asn_num:
+                try:
+                    hop.asn_tier.append(asn_tiers.get(int(asn_num), None))
+                except ValueError:
+                    hop.asn_tier.append(None)
             else:
-                hop.asn = None
+                hop.asn_tier.append(None)
 
     #What were the auth results?
     auth_headers = [h.value for h in headers if h.name.lower() == "authentication-results"]
@@ -151,19 +182,19 @@ def analyze_email(msg, headers: List, hops: List[ReceivedHop]) -> AnalysisResult
     result.score = score
 
     #Determines verdict based on score.
-    if score >= 10:
+    if score >= 15:
         verdict = Fore.GREEN + Style.BRIGHT + "High Confidence"
         description = Fore.GREEN + "All authentication passed or strong signals of legitimacy."
-    elif 0 <= score < 10:
+    elif 0 <= score < 15:
         verdict = Fore.GREEN + Style.BRIGHT + "Mostly Safe"
         description = Fore.GREEN + "No critical issues, but missing or weak auth mechanisms."
-    elif -25 <= score < 0:
+    elif -20 <= score < 0:
         verdict = Fore.YELLOW + Style.BRIGHT + "Suspicious"
         description = Fore.YELLOW + "Missing or failed authentication, or mild anomalies detected."
-    elif -50 <= score < -25:
+    elif -40 <= score < -20:
         verdict = Fore.RED + Style.BRIGHT + "Risky"
         description = Fore.RED + "Multiple authentication problems or header inconsistencies."
-    else:  #Score < -50.
+    else:  #Score < -40.
         verdict = Fore.RED + Style.BRIGHT + "Likely Spoofed"
         description = Fore.RED + "Severe header anomalies and authentication failures."
 

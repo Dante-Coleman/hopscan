@@ -35,7 +35,12 @@ def main():
             if hop.private_ips:
                 print(f"  Private IPs: {', '.join(hop.private_ips)}")
             if hop.valid_ips:
-                print(f"  Valid Public IPs: {', '.join(hop.valid_ips)}, Country: {hop.country}, City: {hop.city}, ASN: {hop.asn}\n")
+                print(
+                    f"  Valid Public IPs: {', '.join(hop.valid_ips)}, "
+                    f"Country: {hop.country}, City: {hop.city}, "
+                    f"ASN: {', '.join(str(a) for a in hop.asn_num if a is not None) or 'None'}|"
+                    f"{', '.join(str(a) for a in hop.asn if a is not None) or 'None'}\n"
+                )
             else:
                 print("  Valid Public IPs: None found\n")
         else:

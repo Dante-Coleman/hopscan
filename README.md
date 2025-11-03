@@ -55,7 +55,7 @@ Email analysis tool written in Python. Scan **.eml** and **.txt** files for head
    ```
 ---
 ### To-Do List
-**<ins>In-Progress</ins>:**
+**<ins>In Progress</ins>:**
 - Finish/Improve geolocation and ASN analysis.
 
 **Detections:**
