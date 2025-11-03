@@ -35,7 +35,7 @@ def is_valid_ipv4(ip: str) -> bool:
     except (OSError, ValueError):
         return False
 
-#Database pathing.
+# Database pathing.
 current_dir = Path(__file__).parent
 root_dir = current_dir.parent
 db_city_path = root_dir / "databases" / "GeoLite2-City_20251028" / "GeoLite2-City.mmdb"

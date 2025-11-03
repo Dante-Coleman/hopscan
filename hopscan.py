@@ -5,7 +5,7 @@ from core.loader import load_email
 from core.parser import extract_headers, extract_received_hops
 from core.analyzer import analyze_email
 
-init(autoreset=True) #Auto reset colorama styles after each print.
+init(autoreset=True) # Auto reset colorama styles after each print.
 
 def main():
     """Main function to run HopScan from command line."""
