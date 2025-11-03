@@ -1,10 +1,10 @@
 ![Python](https://img.shields.io/badge/python-3.13.7-blue)
 ![Dependencies](https://img.shields.io/badge/dependencies-2-brightgreen)
-![License](https://img.shields.io/badge/license-All%20Rights%20Reserved-red)
-# hopscan™
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+# hopscan
 Email analysis tool written in Python. Scan **.eml** and **.txt** files for header analysis, security scoring, and verdict report.
 
-**hopscan™** helps cybersecurity enthusiasts and analysts quickly assess email threats by analyzing headers, authentication, and domain reputation.
+**hopscan** helps cybersecurity enthusiasts and analysts quickly assess email threats by analyzing headers, authentication, and domain reputation.
 
 This project is also a personal learning journey in Python, email forensics, and cybersecurity analysis.
 
@@ -82,24 +82,24 @@ This project requires Python 3.13+ and the following packages (install via `pip 
 
 ---
 ### License
-All rights reserved.
-
-This repository and its contents are the intellectual property of Dante Coleman.
-No part of this codebase may be copied, modified, or redistributed without explicit permission.
-
-This project uses GeoLite2 data created by MaxMind, available from https://www.maxmind.com.
-Each database folder within the /databases directory contains its own license provided by MaxMind and is governed by the MaxMind End User License Agreement.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE.txt) file for details.
 
 ---
-### Attribution
-This project uses GeoLite2 data created by [MaxMind](https://www.maxmind.com).
+
+### Logo Usage
+The hopscan™ logo is © 2025 Dante Coleman. All rights reserved. The logo is not covered by the MIT License and may not be used without permission.
+
+---
+
+### Third-Party Data
+This project uses GeoLite2 data created by [MaxMind](https://www.maxmind.com), available from https://www.maxmind.com. Each database folder within the [/databases](/databases) directory contains its own license provided by MaxMind.
 
 ---
 ### Disclaimer
-**hopscan™** is a personal and educational project created to explore Python programming and concepts in email header analysis, fraud detection, and cybersecurity research.
+**hopscan** is a personal and educational project created to explore Python programming and concepts in email header analysis, fraud detection, and cybersecurity research.
 This software is provided “**as is**”, without warranty of any kind, express or implied, including but not limited to the warranties of merchantability, fitness for a particular purpose, and noninfringement.
 
-The author makes **no guarantees** regarding the accuracy, reliability, or completeness of the results produced by this program. Users are solely responsible for how they interpret or act upon the information generated. **hopscan™ should not be relied upon as a definitive or automated security solution.**
+The author makes **no guarantees** regarding the accuracy, reliability, or completeness of the results produced by this program. Users are solely responsible for how they interpret or act upon the information generated. **hopscan should not be relied upon as a definitive or automated security solution.**
 
 By using this software, you agree that the author shall **not be held liable** for any damages, losses, or consequences arising from the use or misuse of the program, its outputs, or its data sources.
 
