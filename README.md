@@ -1,3 +1,4 @@
+![GitHub release](https://img.shields.io/github/v/release/Dante-Coleman/hopscan)
 ![Python](https://img.shields.io/badge/python-3.13+-blue)
 ![Dependencies](https://img.shields.io/badge/dependencies-2-brightgreen)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
