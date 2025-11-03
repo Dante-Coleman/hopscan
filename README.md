@@ -1,5 +1,12 @@
+![Python](https://img.shields.io/badge/python-3.13.7-blue)
+![Dependencies](https://img.shields.io/badge/dependencies-2-brightgreen)
+![License](https://img.shields.io/badge/license-All%20Rights%20Reserved-red)
 # hopscan™
 Email analysis tool written in Python. Scan **.eml** and **.txt** files for header analysis, security scoring, and verdict report.
+
+**hopscan™** helps cybersecurity enthusiasts and analysts quickly assess email threats by analyzing headers, authentication, and domain reputation.
+
+This project is also a personal learning journey in Python, email forensics, and cybersecurity analysis.
 
 <img width="1000" height="562" alt="hopscanlogo3" src="https://github.com/user-attachments/assets/1ee8b3a0-5080-4bc2-bbeb-e829fdde789b" />
 
@@ -29,7 +36,7 @@ Email analysis tool written in Python. Scan **.eml** and **.txt** files for head
 **3. Output:**
 - Analysis results, verdict, and description.
 - All domains extracted.
-- CLI; Uses *Colorama* for legibility and color-coding.
+- CLI tool; uses *Colorama* for color-coded output.
 <img width="485" height="55" alt="verdict" src="https://github.com/user-attachments/assets/cb87e8a6-6baa-4c0f-a235-6b6021988cec" />
 
 ---
@@ -37,15 +44,20 @@ Email analysis tool written in Python. Scan **.eml** and **.txt** files for head
 1. Install Python.
 > [!NOTE]
 > Latest version recommended. Homebrew recommended for macOS.
-3. Open a terminal in the [hopscan]() directory.
-4. Create a Python venv and activate it.
+2. Open a terminal in the [hopscan](./) directory.
+3. Create a Python virtual environment and activate it:
+```
+python -m venv venv        # Create venv
+source venv/bin/activate    # Unix/macOS
+venv\Scripts\activate       # Windows
+```
 > [!NOTE]
 > Using a virtual environment is highly recommended.
-6. Install pip requirements from [requirements.txt](requirements.txt):
+4. Install pip requirements from [requirements.txt](requirements.txt):
    ```
    pip install -r requirements.txt
    ```
-7. Run hopscan:
+5. Run hopscan:
    ```
    python hopscan.py "Path:\To\Email-File.eml"
    ```
@@ -54,31 +66,20 @@ Email analysis tool written in Python. Scan **.eml** and **.txt** files for head
    python hopscan.py folder_in_hopscan_directory/Email-File.eml
    ```
 ---
-### To-Do List
-**<ins>In Progress</ins>:**
-- Finish/Improve geolocation and ASN analysis.
+### Dependencies
+This project requires Python 3.13+ and the following packages (install via `pip install -r requirements.txt`):
 
-**Detections:**
-- Add detection: Timezone mismatch.
-- Add detection: Authentication passes for a relay but fails for origin.
-- Add detection: Spam and reputation headers from Microsoft, Google, etc.
+- [Colorama](https://pypi.org/project/colorama/) – for colored CLI output
+- [geoip2](https://pypi.org/project/geoip2/) – for MaxMind geolocation queries
 
-**Verifications:**
-- Add verification: HELO hostnames.
-- Add verification: AbuseIPDB, VirusTotal, and WhoIS DNS.
+---
+### Future Improvements
+- Geolocation and ASN analysis refinement.
+- Additional detection rules (timezone mismatch, relay vs. origin authentication).
+- External verifications (HELO hostnames, AbuseIPDB, VirusTotal, WhoIS).
+- Advanced analysis (base64/obfuscation detection, high-risk domain matching, URL & attachment scanning).
+- Export options (CSV/JSON), verbose reporting, sensitivity adjustment, caching, and GUI.
 
-**Analysis:**
-- Add analysis: High-risk domain protection via listing, fuzzy matching, and strict thresholds.
-- Add analysis: Base64, obfuscation, entropy in headers and bodies.
-- Add analysis: Keywords and linguistics (Fraud, urgency, obfuscation).
-- Add analysis: URLs and attachments.
-
-**Features:**
-- Add feature: Export to CSV and JSON.
-- Add feature: Verbose reporting option.
-- Add feature: Sensitivity adjustment option.
-- Add feature: Caching for large data volumes.
-- Add feature: GUI.
 ---
 ### License
 All rights reserved.
