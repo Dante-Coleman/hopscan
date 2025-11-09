@@ -135,15 +135,18 @@ def analyze_email(msg, headers: List, hops: List[ReceivedHop]) -> AnalysisResult
 
     # What geolocations were found?
     for hop in result.received_hops:
+        hop.city.clear()
+        hop.country.clear()
+
         for ip in hop.valid_ips:
             geo = get_valid_ipv4_geolocation(ip)
             if geo:
                 city, country = geo
-                hop.city = city
-                hop.country = country
             else:
-                hop.city = None
-                hop.country = None
+                city, country = None, None
+
+            hop.city.append(city)
+            hop.country.append(country)
 
     # What ASN numbers and orgs were found? What tiers are they?
     for hop in result.received_hops:

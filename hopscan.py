@@ -35,12 +35,18 @@ def main():
             if hop.private_ips:
                 print(f"  Private IPs: {', '.join(hop.private_ips)}")
             if hop.valid_ips:
-                print(
-                    f"  Valid Public IPs: {', '.join(hop.valid_ips)}, "
-                    f"Country: {hop.country}, City: {hop.city}, "
-                    f"ASN: {', '.join(str(a) for a in hop.asn_num if a is not None) or 'None'}|"
-                    f"{', '.join(str(a) for a in hop.asn if a is not None) or 'None'}\n"
-                )
+                print("  Valid Public IPs:")
+                for i, ip in enumerate(hop.valid_ips):
+                    country = hop.country[i] if i < len(hop.country) else None
+                    city = hop.city[i] if i < len(hop.city) else None
+                    asn_num = hop.asn_num[i] if i < len(hop.asn_num) else None
+                    asn = hop.asn[i] if i < len(hop.asn) else None
+
+                    print(
+                        f"    {ip} -> Country: {country or 'None'}, "
+                        f"City: {city or 'None'}, ASN: {asn_num or 'None'}|{asn or 'None'}"
+                    )
+                print()
             else:
                 print("  Valid Public IPs: None found\n")
         else:

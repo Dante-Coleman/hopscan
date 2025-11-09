@@ -16,8 +16,8 @@ class ReceivedHop:
     private_ips: List[str] = field(default_factory=list)
     invalid_ips: List[str] = field(default_factory=list)
     timestamp: Optional[datetime] = None
-    city: Optional[str] = None
-    country: Optional[str] = None
+    city: List[Optional[str]] = field(default_factory=list)
+    country: List[Optional[str]] = field(default_factory=list)
     asn: List[Optional[str]] = field(default_factory=list)
     asn_num: List[Optional[str]] = field(default_factory=list)
     asn_tier: List[Optional[int]] = field(default_factory=list)
