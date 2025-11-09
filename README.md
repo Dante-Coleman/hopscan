@@ -23,7 +23,8 @@ This project is also a personal learning journey in Python, email forensics, and
 - Authentication flags
 - Timestamps
 - IP addresses
-<img width="538" height="381" alt="hops" src="https://github.com/user-attachments/assets/43490f9a-ac79-4493-a8a9-18fed1abf95f" />
+<img width="879" height="499" alt="hops" src="https://github.com/user-attachments/assets/18f8cc0b-3b5b-48b3-b24c-414fab341f4d" />
+
 
 - Geolocation data (*MaxMind DB 2025*)
 - ASN data (*MaxMind DB 2025*)
@@ -32,13 +33,15 @@ This project is also a personal learning journey in Python, email forensics, and
 - Time travel (Large penalty)
 - SPF/DKIM/DMARC (Pass, Fail, or None)
 - Private hops count (Small penalty)
-<img width="559" height="128" alt="analysis" src="https://github.com/user-attachments/assets/0ed475d4-9f7e-479d-9e2e-95f3322f44cc" />
+<img width="430" height="123" alt="analysis" src="https://github.com/user-attachments/assets/524a60dd-8a87-4b30-acc3-6652625910c9" />
+
 
 **3. Output:**
 - Analysis results, verdict, and description.
 - All domains extracted.
 - CLI tool; uses *Colorama* for color-coded output.
-<img width="485" height="55" alt="verdict" src="https://github.com/user-attachments/assets/cb87e8a6-6baa-4c0f-a235-6b6021988cec" />
+<img width="496" height="52" alt="verdict" src="https://github.com/user-attachments/assets/fa8cf11a-13d6-4ffb-b6ca-371f9de9fbb7" />
+
 
 ---
 ### Usage
