@@ -7,6 +7,17 @@ from core.analyzer import analyze_email
 
 init(autoreset=True) # Auto reset colorama styles after each print.
 
+def color_result(value):
+    if not value:
+        value = "none"
+    val = value.lower()
+    if val == "pass":
+        return f"{Fore.GREEN}{val.capitalize()}{Style.RESET_ALL}"
+    elif val in ("fail", "none", "neutral"):
+        return f"{Fore.RED}{val.capitalize()}{Style.RESET_ALL}"
+    else:
+        return f"{Fore.YELLOW}{val.capitalize()}{Style.RESET_ALL}"
+
 def main():
     """Main function to run HopScan from command line."""
     parser = argparse.ArgumentParser(
@@ -41,11 +52,13 @@ def main():
                     city = hop.city[i] if i < len(hop.city) else None
                     asn_num = hop.asn_num[i] if i < len(hop.asn_num) else None
                     asn = hop.asn[i] if i < len(hop.asn) else None
+                    abuseipdb_url = f"https://abuseipdb.com/check/{ip}"
 
                     print(
-                        f"    {ip} -> Country: {country or 'None'}, "
+                        f"    {Fore.GREEN}{ip}{Style.RESET_ALL} -> Country: {country or 'None'}, "
                         f"City: {city or 'None'}, ASN: {asn_num or 'None'}|{asn or 'None'}"
                     )
+                    print(f"        AbuseIPDB Lookup: {Fore.RED}{abuseipdb_url}{Style.RESET_ALL}")
                 print()
             else:
                 print("  Valid Public IPs: None found\n")
@@ -56,8 +69,21 @@ def main():
 
     print()
     print(Fore.WHITE + Back.BLACK + Style.BRIGHT + "ANALYSIS RESULTS:" + Style.RESET_ALL)
-    print(f"{Fore.MAGENTA}{Style.BRIGHT}Time Travel Detected:{Style.RESET_ALL} {result.flags['time_travel']}")
-    print(f"{Fore.MAGENTA}{Style.BRIGHT}Authentication Results:{Style.RESET_ALL} {result.auth_results}")
+
+    print(
+        f"{Fore.MAGENTA}{Style.BRIGHT}Time Travel Detected:{Style.RESET_ALL}"
+        f"{Fore.RED if result.flags['time_travel'] else Fore.GREEN} {result.flags['time_travel']}{Style.RESET_ALL}"
+    )
+
+    auth = result.auth_results
+    spf = color_result(getattr(auth, "spf", "none"))
+    dkim = color_result(getattr(auth, "dkim", "none"))
+    dmarc = color_result(getattr(auth, "dmarc", "none"))
+    print(
+        f"{Fore.MAGENTA}{Style.BRIGHT}Authentication Results:{Style.RESET_ALL} "
+        f"SPF: {spf} | DKIM: {dkim} | DMARC: {dmarc}"
+    )
+    
     print(f"{Fore.MAGENTA}{Style.BRIGHT}From Domain:{Style.RESET_ALL} {result.from_domain}")
     print(f"{Fore.MAGENTA}{Style.BRIGHT}Reply-To Domain:{Style.RESET_ALL} {result.reply_to_domain}")
     print(f"{Fore.MAGENTA}{Style.BRIGHT}Return-Path Domain:{Style.RESET_ALL} {result.return_path_domain}")
