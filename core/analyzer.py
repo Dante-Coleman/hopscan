@@ -6,7 +6,6 @@ from .asn_tiers import asn_tiers
 from .models import AnalysisResult, ReceivedHop, AuthResults
 from .utils import extract_domain_from_address, get_valid_ipv4_geolocation, get_valid_ipv4_asn, get_valid_ipv4_asn_num
 
-# Scoring dictionary.
 FLAG_SCORES = {
     "time_travel": -50,
     "no_spf": -3,
@@ -80,12 +79,10 @@ def calculate_score(result: AnalysisResult) -> int:
     score = 0
     flags = result.flags
 
-    # Check flags and apply scores.
     for flag, value in flags.items():
         if value and flag in FLAG_SCORES:
             score += FLAG_SCORES[flag]
 
-    # Check auth results and apply scores.
     auth = result.auth_results
     if auth:
         if not auth.spf or auth.spf == "none":
@@ -106,13 +103,10 @@ def calculate_score(result: AnalysisResult) -> int:
         if all(v == "pass" for v in [auth.spf, auth.dkim, auth.dmarc] if v):
             score += FLAG_SCORES["valid_auth"]
 
-    # Adjust score based on ASN tiers (one score per hop).
     for hop in result.received_hops:
         if hop.asn_tier:
-            # Filter out None values.
             valid_tiers = [t for t in hop.asn_tier if t is not None]
             if valid_tiers:
-                # Choose the most favorable tier (lowest number).
                 best_tier = min(valid_tiers)
                 if best_tier == 1:
                     score += FLAG_SCORES["asn_tier_1"]
@@ -130,10 +124,8 @@ def analyze_email(msg, headers: List, hops: List[ReceivedHop]) -> AnalysisResult
     result.headers = headers
     result.received_hops = hops
 
-    # Was time travel detected?
     result.flags["time_travel"] = detect_time_travel(hops)
 
-    # What geolocations were found?
     for hop in result.received_hops:
         hop.city.clear()
         hop.country.clear()
@@ -148,7 +140,6 @@ def analyze_email(msg, headers: List, hops: List[ReceivedHop]) -> AnalysisResult
             hop.city.append(city)
             hop.country.append(country)
 
-    # What ASN numbers and orgs were found? What tiers are they?
     for hop in result.received_hops:
         hop.asn.clear()
         hop.asn_num.clear()
@@ -169,36 +160,32 @@ def analyze_email(msg, headers: List, hops: List[ReceivedHop]) -> AnalysisResult
             else:
                 hop.asn_tier.append(None)
 
-    # What were the auth results?
     auth_headers = [h.value for h in headers if h.name.lower() == "authentication-results"]
     result.auth_results = parse_auth_headers(auth_headers)
 
-    # What domains were extracted?
     domains = extract_domains(msg)
     result.from_domain = domains["from_domain"]
     result.reply_to_domain = domains["reply_to_domain"]
     result.return_path_domain = domains["return_path_domain"]
     result.sender_domain = domains["sender_domain"]
 
-    # Run score calculator.
     score = calculate_score(result)
     result.score = score
 
-    # Determines verdict based on score.
     if score >= 15:
-        verdict = Fore.GREEN + Style.BRIGHT + "High Confidence"
+        verdict = Fore.GREEN + Style.BRIGHT + "High Confidence: Legitimate"
         description = Fore.GREEN + "All authentication passed or strong signals of legitimacy."
     elif 0 <= score < 15:
-        verdict = Fore.GREEN + Style.BRIGHT + "Mostly Safe"
+        verdict = Fore.GREEN + Style.BRIGHT + "Likely Safe"
         description = Fore.GREEN + "No critical issues, but missing or weak auth mechanisms."
     elif -20 <= score < 0:
         verdict = Fore.YELLOW + Style.BRIGHT + "Suspicious"
         description = Fore.YELLOW + "Missing or failed authentication, or mild anomalies detected."
     elif -40 <= score < -20:
-        verdict = Fore.RED + Style.BRIGHT + "Risky"
+        verdict = Fore.RED + Style.BRIGHT + "Likely Risky"
         description = Fore.RED + "Multiple authentication problems or header inconsistencies."
-    else:  # Score < -40.
-        verdict = Fore.RED + Style.BRIGHT + "Likely Spoofed"
+    else:
+        verdict = Fore.RED + Style.BRIGHT + "High Confidence: Fraudulent"
         description = Fore.RED + "Severe header anomalies and authentication failures."
 
     result.flags["verdict"] = verdict

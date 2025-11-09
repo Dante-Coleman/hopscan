@@ -27,14 +27,14 @@ def extract_received_hops(msg: Message) -> List[ReceivedHop]:
     for idx, raw in enumerate(received):
         decoded = decode_header(raw)
         hop = ReceivedHop(raw=decoded, index=idx)
-        ipv4s = extract_ipv4s(decoded) # Extract potential IPv4 addresses.
+        ipv4s = extract_ipv4s(decoded)
         hop.ip_candidates = ipv4s
         for ip in ipv4s:
             if is_private_ipv4(ip):
                 hop.private_ips.append(ip)
             else:
                 hop.valid_ips.append(ip)
-        m = re.search(r';\s*(.+)$', decoded) # Attempt to parse timestamp from Received header tail.
+        m = re.search(r';\s*(.+)$', decoded)
         if m:
             date_str = m.group(1).strip()
             dt = parse_email_date(date_str)
