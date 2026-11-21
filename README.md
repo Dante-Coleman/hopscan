@@ -22,7 +22,7 @@ This project is also a personal learning journey in Python, email forensics, and
 - Domains
 - Authentication flags
 - Timestamps
-- IP addresses
+- IP addresses (IPv4 and IPv6, with private/reserved ranges separated out)
 <img width="879" height="499" alt="hops" src="https://github.com/user-attachments/assets/18f8cc0b-3b5b-48b3-b24c-414fab341f4d" />
 
 
@@ -30,9 +30,22 @@ This project is also a personal learning journey in Python, email forensics, and
 - ASN data (*MaxMind DB 2025*)
 
 **2. Severity score calculation**:
-- Time travel (Large penalty)
-- SPF/DKIM/DMARC (Pass, Fail, or None)
-- Private hops count (Small penalty)
+Every point added or taken away is listed under **FINDINGS** in the report, so you can see why a verdict was reached.
+
+| Signal | Points |
+|---|---|
+| No trusted Authentication-Results header | −10 |
+| SPF pass / softfail / fail / none or error | +5 / −5 / −15 / −3 |
+| DKIM pass *aligned with the From domain* / fail / none | +5 / −15 / −3 |
+| DMARC pass / fail / none or error | +10 / −30 / −5 |
+| Display name contains a different domain's address (`"support@paypal.com" <x@evil.example>`) | −25 |
+| Reply-To domain differs from From | −10 |
+| Return-Path domain differs from From (only when DMARC didn't pass) | −5 |
+| Received timestamps go backwards by more than 5 minutes | −10 |
+
+Only the **topmost** Authentication-Results header is trusted by default, because it is the one your mail server added. Any header below it could have been written by the sender. Use `--trusted-authserv` to name your provider's server instead.
+
+ASN categories (major provider, hosting, ISP/VPS) are shown for context but don't affect the score, since phishing is often sent through large, reputable providers.
 <img width="430" height="123" alt="analysis" src="https://github.com/user-attachments/assets/524a60dd-8a87-4b30-acc3-6652625910c9" />
 
 
@@ -40,6 +53,7 @@ This project is also a personal learning journey in Python, email forensics, and
 - Analysis results, verdict, and description.
 - All domains extracted.
 - CLI tool; uses *Colorama* for color-coded output.
+- `--json` for machine-readable output.
 <img width="496" height="52" alt="verdict" src="https://github.com/user-attachments/assets/fa8cf11a-13d6-4ffb-b6ca-371f9de9fbb7" />
 
 
@@ -69,9 +83,25 @@ venv\Scripts\activate       # Windows
    ```
    python hopscan.py folder_in_hopscan_directory/Email-File.eml
    ```
+
+**Options**
+| Option | What it does |
+|---|---|
+| `--json` | Print results as JSON instead of the colored report |
+| `--trusted-authserv ID` | Only trust Authentication-Results headers from this server (e.g. `mx.google.com`). Repeatable. |
+| `--db-dir PATH` | Folder containing the GeoLite2 databases (also settable with `HOPSCAN_DB_DIR`) |
+| `--no-geo` | Skip GeoIP/ASN lookups |
+
+**Updating the GeoLite2 databases:** download the newest City and ASN databases from MaxMind and put their folders in [/databases](/databases). hopscan picks the newest `GeoLite2-City*` and `GeoLite2-ASN*` folders automatically. MaxMind's license asks that the data be kept up to date.
+
+**Running the tests**
+```
+pip install pytest
+python -m pytest
+```
 ---
 ### Dependencies
-This project requires Python 3.13+ and the following packages (install via `pip install -r requirements.txt`):
+This project is tested on Python 3.13 and the following packages (install via `pip install -r requirements.txt`):
 
 - [Colorama](https://pypi.org/project/colorama/) – for colored CLI output
 - [geoip2](https://pypi.org/project/geoip2/) – for MaxMind geolocation queries
@@ -79,7 +109,8 @@ This project requires Python 3.13+ and the following packages (install via `pip 
 ---
 ### Future Improvements
 - Geolocation and ASN analysis refinement.
-- Additional detection rules (timezone mismatch, relay vs. origin authentication).
+- Additional detection rules (timezone mismatch, lookalike domains, brand impersonation).
+- Use the Public Suffix List for domain alignment (currently approximated).
 - External verifications (HELO hostnames, AbuseIPDB, VirusTotal, WhoIS).
 - Advanced analysis (base64/obfuscation detection, high-risk domain matching, URL & attachment scanning).
 - Export options (CSV/JSON), verbose reporting, sensitivity adjustment, caching, and GUI.

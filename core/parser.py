@@ -1,43 +1,28 @@
-import re
 from email.message import Message
 from typing import List
-from collections import OrderedDict
-from .models import Header, ReceivedHop
-from .utils import decode_header, extract_ipv4s, parse_email_date, is_private_ipv4
+
+from .models import Header, IPInfo, ReceivedHop
+from .utils import decode_header, extract_ips, is_public_ip, parse_email_date
 
 
 def extract_headers(msg: Message) -> List[Header]:
-    """
-    Return all headers in original order as a list of Header dataclasses.
-    For repeated headers (Received), each appears in order.
-    """
-    headers = []
-    for name, value in msg.items():
-        decoded_value = decode_header(value)
-        headers.append(Header(name=name, value=decoded_value))
-    return headers
+    """Return all headers in original order. Repeated headers (Received) each appear in order."""
+    return [Header(name=name, value=decode_header(value)) for name, value in msg.items()]
+
 
 def extract_received_hops(msg: Message) -> List[ReceivedHop]:
     """
-    Extract Received headers in order. Stores them top to bottom as they appear in the raw message.
-    Preserves order and captures timestamps and ips found.
+    Extract Received headers top to bottom as they appear in the message.
+    The topmost header is the most recent hop (added by the receiving server).
     """
-    received = msg.get_all('Received') or []
     hops = []
-    for idx, raw in enumerate(received):
-        decoded = decode_header(raw)
+    for idx, raw in enumerate(msg.get_all("Received") or []):
+        decoded = " ".join(decode_header(raw).split())  # Unfold whitespace.
         hop = ReceivedHop(raw=decoded, index=idx)
-        ipv4s = extract_ipv4s(decoded)
-        hop.ip_candidates = ipv4s
-        for ip in ipv4s:
-            if is_private_ipv4(ip):
-                hop.private_ips.append(ip)
-            else:
-                hop.valid_ips.append(ip)
-        m = re.search(r';\s*(.+)$', decoded)
-        if m:
-            date_str = m.group(1).strip()
-            dt = parse_email_date(date_str)
-            hop.timestamp = dt
+        for addr in extract_ips(decoded):
+            hop.ips.append(IPInfo(ip=str(addr), version=addr.version, is_public=is_public_ip(addr)))
+        # The timestamp follows the LAST semicolon (RFC 5321 section 4.4).
+        if ";" in decoded:
+            hop.timestamp = parse_email_date(decoded.rsplit(";", 1)[1])
         hops.append(hop)
     return hops

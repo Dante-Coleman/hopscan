@@ -1,0 +1,10 @@
+Authentication-Results: mx.victim.com; spf=fail smtp.mailfrom=bank.com;
+	dkim=fail header.d=bank.com; dmarc=fail header.from=bank.com
+Authentication-Results: mx.bank.com; spf=pass smtp.mailfrom=bank.com;
+	dkim=pass header.d=bank.com; dmarc=pass header.from=bank.com
+From: "Bank Security" <ceo@bank.com>
+Reply-To: payments@evil.example
+To: victim@victim.com
+Subject: Urgent wire transfer
+
+body

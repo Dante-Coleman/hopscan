@@ -1,0 +1,11 @@
+Received: from relay.example.org (relay.example.org [198.51.100.7])
+	by mx.example.org with ESMTPS; Mon, 1 Jan 2024 10:00:00 +0000
+Received: from sender.example.com (sender.example.com [203.0.113.9])
+	by relay.example.org with ESMTP; Mon, 1 Jan 2024 10:00:02 +0000
+Authentication-Results: mx.example.org; spf=pass smtp.mailfrom=example.com;
+	dkim=pass header.d=example.com; dmarc=pass header.from=example.com
+From: Alice <alice@example.com>
+To: bob@example.org
+Subject: lunch
+
+body

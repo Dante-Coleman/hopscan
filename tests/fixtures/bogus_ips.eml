@@ -1,0 +1,7 @@
+Received: from localhost (localhost [127.0.0.1]) by mx.example.org (Postfix 3.6.4.1)
+	with ESMTP id ABC; Mon, 1 Jan 2024 10:00:00 +0000
+Received: from host (unknown [999.1.1.1]) (100.64.3.4) by mx.example.org; Mon, 1 Jan 2024 09:59:00 +0000
+From: a@example.com
+Subject: x
+
+body

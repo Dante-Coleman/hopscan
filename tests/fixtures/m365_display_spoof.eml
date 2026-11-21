@@ -1,0 +1,14 @@
+Received: from DM6PR11MB1234.namprd11.prod.outlook.com (2603:10b6:5:1a2::11) by
+ BN9PR11MB5678.namprd11.prod.outlook.com with HTTPS; Tue, 4 Jun 2024 15:20:10 +0000
+Received: from mail.attacker.example (2001:db8::25) by
+ DM6PR11MB1234.mail.protection.outlook.com (2a01:111:f400:7e8a::20) with Microsoft SMTP
+ Server (version=TLS1_2, cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id 15.20.7633.27;
+ Tue, 4 Jun 2024 15:20:08 +0000
+Authentication-Results: spf=pass (sender IP is 2a01:111:f400:7e8a::20)
+ smtp.mailfrom=attacker.example; dkim=none (message not signed)
+ header.d=none;dmarc=none action=none header.from=attacker.example;compauth=fail reason=001
+From: "support@paypal.com" <help@attacker.example>
+To: victim@contoso.com
+Subject: Your account is limited
+
+body

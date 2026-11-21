@@ -2,11 +2,8 @@ import email
 from email import policy
 from email.message import Message
 
+
 def load_email(path: str) -> Message:
-    if path.lower().endswith(".eml"):
-        with open(path, "rb") as f:
-            msg = email.message_from_binary_file(f, policy=policy.default)
-    else:
-        with open(path, "r", encoding="utf-8", errors="replace") as f:
-            msg = email.message_from_string(f.read(), policy=policy.default)
-    return msg
+    """Load an email from a .eml or .txt file. Bytes are parsed directly so non-UTF-8 mail isn't mangled."""
+    with open(path, "rb") as f:
+        return email.message_from_binary_file(f, policy=policy.default)

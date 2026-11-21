@@ -1,146 +1,204 @@
+import ipaddress
+import os
 import re
-import socket
-import geoip2.database
+import sys
 from datetime import datetime
-from typing import List, Optional, Tuple
-from pathlib import Path
 from email.header import decode_header as _decode_header
-from email.utils import parsedate_to_datetime, parseaddr
+from email.utils import parseaddr, parsedate_to_datetime
+from pathlib import Path
+from typing import List, Optional, Tuple
 
-def extract_ipv4s(text: str) -> list[str]:
+ROOT_DIR = Path(__file__).resolve().parent.parent
+DEFAULT_DB_DIR = ROOT_DIR / "databases"
+
+# Received headers record the connecting IP in square brackets, e.g.
+# "(mail.example.com [203.0.113.5])", or (Microsoft) alone in parentheses,
+# e.g. "(2603:10b6:5:1a2::11)". Parentheses can also hold software versions
+# like "(Postfix 3.6.4.1)", so a parenthesized IP must be the whole group.
+_IP_GROUP = re.compile(r"\[([^\[\]]*)\]|\(\s*([0-9A-Fa-f:.]+)\s*\)")
+_IPV4 = re.compile(r"(?<![\w.])(\d{1,3}(?:\.\d{1,3}){3})(?![\w.])")
+_IPV6 = re.compile(r"(?<![\w:.])((?:IPv6:)?[0-9A-Fa-f]{0,4}(?::[0-9A-Fa-f]{0,4}){2,7}(?:\d{1,3}(?:\.\d{1,3}){3})?)(?![\w:.])")
+
+
+def _candidates(text: str) -> List[str]:
+    found = []
+    for match in _IPV4.finditer(text):
+        found.append(match.group(1))
+    for match in _IPV6.finditer(text):
+        token = match.group(1)
+        if token.startswith("IPv6:"):
+            token = token[5:]
+        found.append(token)
+    return found
+
+
+def extract_ips(text: str) -> List[ipaddress._BaseAddress]:
     """
-    Find potential IPv4 addresses.
+    Find IPv4 and IPv6 addresses in a Received header.
 
-    text: Input text to search for IPv4 addresses.
+    Addresses in [brackets], or alone in (parentheses), are preferred because
+    that is where MTAs record the connecting IP. Bare dotted strings elsewhere are often
+    software versions (e.g. "Postfix 3.6.4.1"), so they are only used when no
+    bracketed address exists.
 
-    Returns: List of strings of potential IPv4 addresses.
+    Returns unique, syntactically valid addresses in order of appearance.
     """
-    pattern = re.compile(r'(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})')
-    return pattern.findall(text)
+    groups = [square or paren for square, paren in _IP_GROUP.findall(text)]
+    bracketed = [c for group in groups for c in _candidates(group)]
+    raw = bracketed if bracketed else _candidates(text)
 
-def is_valid_ipv4(ip: str) -> bool:
-    """
-    Validate if given string is a valid IPv4 address.
-
-    ip: IPv4 address string to validate.
-
-    Returns: True if valid, False if invalid.
-    """
-    try:
-        socket.inet_aton(ip)
-        octets = ip.split('.')
-        if len(octets) != 4:
-            return False
-        return all(0 <= int(octet) <= 255 for octet in octets)
-    except (OSError, ValueError):
-        return False
-
-current_dir = Path(__file__).parent
-root_dir = current_dir.parent
-db_city_path = root_dir / "databases" / "GeoLite2-City_20251028" / "GeoLite2-City.mmdb"
-db_country_path = root_dir / "databases" / "GeoLite2-Country_20251028" / "GeoLite2-Country.mmdb"
-db_asn_path = root_dir / "databases" / "GeoLite2-ASN_20251101" / "GeoLite2-ASN.mmdb"
-
-def get_valid_ipv4_geolocation(ip: str) -> Optional[tuple]:
-    """Get geolocation (city, country) for a valid IPv4 address.
-
-    ip: IPv4 address string.
-
-    Returns: Tuple of (city, country) or None if not found/invalid.
-    """
-    for valid_ip in [ip]:
+    seen = set()
+    result = []
+    for token in raw:
         try:
-            with geoip2.database.Reader(db_city_path) as city_reader:
-                city_response = city_reader.city(valid_ip)
-                city = city_response.city.name or None
-            with geoip2.database.Reader(db_country_path) as country_reader:
-                country_response = country_reader.country(valid_ip)
-                country = country_response.country.name or None
-            return city, country
-        except Exception:
+            addr = ipaddress.ip_address(token)
+        except ValueError:
             continue
+        if addr.is_unspecified or addr in seen:
+            continue
+        seen.add(addr)
+        result.append(addr)
+    return result
 
-def get_valid_ipv4_asn(ip: str) -> Optional[str]:
-    """Get ASN organization for a valid IPv4 address.
 
-    ip: IPv4 address string.
-    
-    Returns: ASN organization string or None if not found/invalid.
+def is_public_ip(addr: ipaddress._BaseAddress) -> bool:
+    """True for globally routable addresses (excludes private, loopback, link-local, CGNAT, etc.)."""
+    return addr.is_global and not addr.is_multicast
+
+
+class GeoLookup:
     """
-    for valid_ip in [ip]:
-        try:
-            with geoip2.database.Reader(db_asn_path) as asn_reader:
-                asn_response = asn_reader.asn(valid_ip)
-                asn = asn_response.autonomous_system_organization
-                return str(asn)
-        except Exception:
-            continue
+    Wraps the MaxMind GeoLite2 City and ASN databases.
 
-def get_valid_ipv4_asn_num(ip: str) -> Optional[str]:
-    """Get ASN number for a valid IPv4 address.
-    
-    ip: IPv4 address string.
-    
-    Returns: ASN number string or None if not found/invalid."""
-    for valid_ip in [ip]:
-        try:
-            with geoip2.database.Reader(db_asn_path) as asn_num_reader:
-                asn_num_response = asn_num_reader.asn(valid_ip)
-                asn_num = asn_num_response.autonomous_system_number
-                return str(asn_num)
-        except Exception:
-            continue
+    Each database is opened once and reused. If geoip2 or a database file is
+    missing, lookups return None instead of failing.
+    """
 
-def is_private_ipv4(addr: str) -> bool:
-    """Detect RFC1918 private IPv4 ranges."""
-    try:
-        parts = [int(p) for p in addr.split('.')]
-        a, b = parts[0], parts[1]
-        if a == 10:
-            return True
-        if a == 172 and 16 <= b <= 31:
-            return True
-        if a == 192 and b == 168:
-            return True
-        return False
-    except Exception:
-        return False
+    def __init__(self, db_dir: Optional[Path] = None):
+        db_dir = Path(db_dir or os.environ.get("HOPSCAN_DB_DIR") or DEFAULT_DB_DIR)
+        self.city_path = _find_db(db_dir, "GeoLite2-City")
+        self.asn_path = _find_db(db_dir, "GeoLite2-ASN")
+        self._city = self._open(self.city_path)
+        self._asn = self._open(self.asn_path)
+
+    @staticmethod
+    def _open(path: Optional[Path]):
+        if path is None:
+            return None
+        try:
+            import geoip2.database
+            return geoip2.database.Reader(str(path))
+        except Exception as exc:  # Missing package or corrupt file.
+            print(f"warning: could not open {path}: {exc}", file=sys.stderr)
+            return None
+
+    @property
+    def available(self) -> bool:
+        return self._city is not None or self._asn is not None
+
+    def location(self, ip: str) -> Tuple[Optional[str], Optional[str]]:
+        """Returns (city, country)."""
+        if self._city is None:
+            return None, None
+        try:
+            r = self._city.city(ip)
+            return r.city.name or None, r.country.name or None
+        except Exception:
+            return None, None
+
+    def asn(self, ip: str) -> Tuple[Optional[int], Optional[str]]:
+        """Returns (asn_number, asn_organization)."""
+        if self._asn is None:
+            return None, None
+        try:
+            r = self._asn.asn(ip)
+            return r.autonomous_system_number, r.autonomous_system_organization
+        except Exception:
+            return None, None
+
+    def close(self):
+        for reader in (self._city, self._asn):
+            if reader is not None:
+                reader.close()
+
+
+def _find_db(db_dir: Path, edition: str) -> Optional[Path]:
+    """
+    Find the newest <edition>.mmdb under db_dir. Handles both MaxMind's dated
+    folders (GeoLite2-City_20251028/GeoLite2-City.mmdb) and a flat layout.
+    """
+    if not db_dir.is_dir():
+        return None
+    matches = sorted(db_dir.glob(f"{edition}*/{edition}.mmdb")) + sorted(db_dir.glob(f"{edition}.mmdb"))
+    return matches[-1] if matches else None
+
 
 def decode_header(value: str) -> str:
-    """
-    Decode an RFC2047 encoded-word header (handles multi-part decode).
-    """
+    """Decode an RFC 2047 encoded-word header value (handles multi-part values)."""
     if value is None:
         return ""
-    parts = _decode_header(value)
+    parts = _decode_header(str(value))
     out = []
     for bytes_or_str, encoding in parts:
         if isinstance(bytes_or_str, bytes):
             try:
-                out.append(bytes_or_str.decode(encoding or 'utf-8', errors='replace'))
-            except Exception:
-                out.append(bytes_or_str.decode('utf-8', errors='replace'))
+                out.append(bytes_or_str.decode(encoding or "utf-8", errors="replace"))
+            except LookupError:
+                out.append(bytes_or_str.decode("utf-8", errors="replace"))
         else:
             out.append(bytes_or_str)
-    return ''.join(out).strip() 
+    return "".join(out).strip()
+
 
 def parse_email_date(date_str: str) -> Optional[datetime]:
-    """Safely parse email date strings to datetime (UTC-aware if available)."""
+    """Parse an RFC 5322 date string. Returns None if it can't be parsed or has no timezone."""
     if not date_str:
         return None
     try:
-        dt = parsedate_to_datetime(date_str)
-        return dt
+        dt = parsedate_to_datetime(date_str.strip())
     except (TypeError, ValueError, IndexError):
         return None
-    
-def extract_domain_from_address(addr: str) -> Optional[str]:
-    """Return domain from an RFC5322 address string (From:, Reply-To:, etc.)."""
+    if dt.tzinfo is None:
+        return None  # Can't compare naive and aware datetimes safely.
+    return dt
+
+
+def parse_address(addr: Optional[str]) -> Tuple[Optional[str], Optional[str]]:
+    """Returns (display_name, domain) from an address header like From: or Reply-To:."""
     if not addr:
+        return None, None
+    name, email_addr = parseaddr(str(addr))
+    domain = email_addr.rsplit("@", 1)[-1].lower().rstrip(">") if "@" in email_addr else None
+    return (name or None), (domain or None)
+
+
+def extract_domain_from_address(addr: Optional[str]) -> Optional[str]:
+    """Return the domain from an RFC 5322 address string (From:, Reply-To:, etc.)."""
+    return parse_address(addr)[1]
+
+
+# Common multi-label public suffixes. This is an approximation of the Public
+# Suffix List, which is what DMARC really uses to find the organizational domain.
+_MULTI_LABEL_SUFFIXES = {
+    "co.uk", "org.uk", "ac.uk", "gov.uk", "me.uk", "ltd.uk", "plc.uk",
+    "com.au", "net.au", "org.au", "edu.au", "gov.au",
+    "co.nz", "org.nz", "co.jp", "ne.jp", "or.jp", "co.kr", "co.in", "co.za",
+    "com.br", "com.mx", "com.ar", "com.cn", "com.hk", "com.sg", "com.tr", "com.tw",
+}
+
+
+def org_domain(domain: Optional[str]) -> Optional[str]:
+    """Approximate organizational domain: mail.example.co.uk -> example.co.uk."""
+    if not domain:
         return None
-    name, email_addr = parseaddr(addr)
-    if not email_addr:
-        return None
-    if '@' in email_addr:
-        return email_addr.split('@')[-1].lower()
-    return None
+    labels = domain.lower().strip(".").split(".")
+    if len(labels) <= 2:
+        return ".".join(labels)
+    if ".".join(labels[-2:]) in _MULTI_LABEL_SUFFIXES:
+        return ".".join(labels[-3:])
+    return ".".join(labels[-2:])
+
+
+def domains_aligned(a: Optional[str], b: Optional[str]) -> bool:
+    """DMARC-style relaxed alignment: same organizational domain."""
+    return bool(a and b) and org_domain(a) == org_domain(b)

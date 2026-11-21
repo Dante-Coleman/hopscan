@@ -1,3 +1,9 @@
+# ASN categories, shown for context only. They do not affect the score:
+# phishing is routinely sent through big, reputable providers, so a "good"
+# network says little about whether a message is legitimate.
+#   1 = major provider, 2 = mail/web hosting, 3 = consumer ISP or cloud/VPS
+ASN_TIER_NAMES = {1: "major provider", 2: "mail/web hosting", 3: "ISP or cloud/VPS"}
+
 asn_tiers = {
     # Tier 1 - Major Corporate Networks
     15169: 1,  # Google LLC
@@ -31,8 +37,8 @@ asn_tiers = {
     209: 1,    # CenturyLink/Lumen (backbone)
     
     # Tier 2 - Known Mail Hosting Services
-    26496: 2,  # Google Workspace
-    36040: 2,  # Google Workspace
+    26496: 2,  # GoDaddy.com, LLC
+    36040: 2,  # Google (YouTube)
     19527: 2,  # Google Cloud Platform
     396982: 2, # Google Cloud
     17184: 2,  # Proofpoint, Inc.
@@ -50,7 +56,7 @@ asn_tiers = {
     51167: 2,  # Contabo GmbH
     206264: 2, # Amarutu Technology Ltd (mail)
     23595: 2,  # Broadcom Corporation (Symantec Email Security)
-    16552: 2,  # Tiggee LLC
+    16552: 2,  # Tiggee LLC (DNS Made Easy)
     30083: 2,  # GoDaddy.com, LLC (email hosting)
     62904: 2,  # Eonix Corporation
     46606: 2,  # Unified Layer (Bluehost, HostGator)
