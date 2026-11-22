@@ -29,19 +29,42 @@ This project is also a personal learning journey in Python, email forensics, and
 - Geolocation data (*MaxMind DB 2025*)
 - ASN data (*MaxMind DB 2025*)
 
-**2. Severity score calculation**:
-Every point added or taken away is listed under **FINDINGS** in the report, so you can see why a verdict was reached.
+**2. Phishing heuristics (static):**
+hopscan reads the message body and attachments without visiting links or opening files:
+- **Sender identity:** brand names in the display name (`"PayPal Service" <x@random.example>`), look-alike From domains (`paypa1-secure.top`, `rnicrosoft-login.example`), punycode domains, and addresses hidden in the display name.
+- **Links:** link text that shows one site but goes to another, look-alike brand domains (`paypal.com.account-verify.top`), links to raw IP addresses, `@` tricks, punycode, URL shorteners, and domain endings popular with phishing sites.
+- **HTML:** forms (especially with password fields), JavaScript, and automatic redirects.
+- **Attachments:** files that run code (`.exe`, `.js`, `.lnk`, `.iso`...), files used for phishing pages or macros (`.html`, `.svg`, `.docm`...), double extensions (`invoice.pdf.html`), and password-protected ZIPs. Files inside ZIP archives are checked too.
+- **Wording:** pressure and credential phrases like "verify your account" or "within 24 hours".
+
+The brand list is in [core/brands.py](core/brands.py) and the other lists are at the top of [core/heuristics.py](core/heuristics.py), so they're easy to extend.
+
+**3. Severity score calculation:**
+Every point added or taken away is listed under **FINDINGS** in the report, grouped by type, so you can see why a verdict was reached.
 
 | Signal | Points |
 |---|---|
 | No trusted Authentication-Results header | −10 |
-| SPF pass / softfail / fail / none or error | +5 / −5 / −15 / −3 |
-| DKIM pass *aligned with the From domain* / fail / none | +5 / −15 / −3 |
+| SPF pass *aligned with From* / pass not aligned / softfail / fail / none or error | +5 / 0 / −5 / −15 / −3 |
+| DKIM pass *aligned with From* / pass not aligned / fail / none | +5 / 0 / −15 / −3 |
 | DMARC pass / fail / none or error | +10 / −30 / −5 |
-| Display name contains a different domain's address (`"support@paypal.com" <x@evil.example>`) | −25 |
+| Display name contains a different domain's address | −25 |
+| Brand in display name, but not sent from that brand's domain | −20 |
+| From domain looks like a brand / uses punycode | −20 / −15 |
 | Reply-To domain differs from From | −10 |
 | Return-Path domain differs from From (only when DMARC didn't pass) | −5 |
+| Link to a look-alike brand domain | −15 |
+| Link text shows a different site than the link goes to, or link to an IP address, `@` trick, punycode | −10 each |
+| URL shortener, suspicious domain ending | −5 each |
+| Form with a password field / any form | −20 / −10 |
+| JavaScript, automatic redirect | −5 each |
+| Attachment that runs code / double extension / risky type / password-protected ZIP | −30 / −20 / −15 / −15 |
+| Pressure wording (2+ phrases / 4+ phrases) | −5 / −10 |
 | Received timestamps go backwards by more than 5 minutes | −10 |
+
+**Alignment** means the domain that passed SPF or DKIM belongs to the same organization as the From address. A pass that isn't aligned only proves the email came from *some* domain, often an email service like SendGrid, not the one you see. DMARC passes when at least one of them is aligned.
+
+**Passing authentication doesn't make an email safe.** Attackers can set up SPF, DKIM and DMARC for domains they own. So any strong phishing indicator (−15 or worse in sender identity, links, attachments or content) keeps the verdict at **Suspicious** or worse, however well the email authenticates.
 
 Only the **topmost** Authentication-Results header is trusted by default, because it is the one your mail server added. Any header below it could have been written by the sender. Use `--trusted-authserv` to name your provider's server instead.
 
@@ -49,9 +72,9 @@ ASN categories (major provider, hosting, ISP/VPS) are shown for context but don'
 <img width="430" height="123" alt="analysis" src="https://github.com/user-attachments/assets/524a60dd-8a87-4b30-acc3-6652625910c9" />
 
 
-**3. Output:**
-- Analysis results, verdict, and description.
-- All domains extracted.
+**4. Output:**
+- The verdict first, then the sender, authentication results with alignment, findings grouped by type, links, attachments and the route the email took.
+- `-v` adds every header, the raw Received lines and AbuseIPDB lookup links.
 - CLI tool; uses *Colorama* for color-coded output.
 - `--json` for machine-readable output.
 <img width="496" height="52" alt="verdict" src="https://github.com/user-attachments/assets/fa8cf11a-13d6-4ffb-b6ca-371f9de9fbb7" />
@@ -65,10 +88,13 @@ ASN categories (major provider, hosting, ISP/VPS) are shown for context but don'
 2. Open a terminal in the [hopscan](./) directory.
 3. Create a Python virtual environment and activate it:
 ```
-python -m venv venv        # Create venv
-source venv/bin/activate    # Unix/macOS
-venv\Scripts\activate       # Windows
+python -m venv .venv                # Create venv
+source .venv/bin/activate           # macOS/Linux
+.\.venv\Scripts\Activate.ps1        # Windows PowerShell
+.venv\Scripts\activate.bat          # Windows Command Prompt
 ```
+> [!TIP]
+> If PowerShell says "running scripts is disabled on this system", run `Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass` and activate again. This only affects the current window.
 > [!NOTE]
 > Using a virtual environment is highly recommended.
 4. Install pip requirements from [requirements.txt](requirements.txt):
@@ -87,12 +113,19 @@ venv\Scripts\activate       # Windows
 **Options**
 | Option | What it does |
 |---|---|
+| `-v`, `--verbose` | Also show every header, raw Received lines and AbuseIPDB links |
 | `--json` | Print results as JSON instead of the colored report |
 | `--trusted-authserv ID` | Only trust Authentication-Results headers from this server (e.g. `mx.google.com`). Repeatable. |
 | `--db-dir PATH` | Folder containing the GeoLite2 databases (also settable with `HOPSCAN_DB_DIR`) |
 | `--no-geo` | Skip GeoIP/ASN lookups |
 
 **Updating the GeoLite2 databases:** download the newest City and ASN databases from MaxMind and put their folders in [/databases](/databases). hopscan picks the newest `GeoLite2-City*` and `GeoLite2-ASN*` folders automatically. MaxMind's license asks that the data be kept up to date.
+
+**Try it on the sample emails**
+```
+python hopscan.py tests/fixtures/gmail_legit.eml
+python hopscan.py tests/fixtures/phish_credential.eml
+```
 
 **Running the tests**
 ```
@@ -109,11 +142,10 @@ This project is tested on Python 3.13 and the following packages (install via `p
 ---
 ### Future Improvements
 - Geolocation and ASN analysis refinement.
-- Additional detection rules (timezone mismatch, lookalike domains, brand impersonation).
+- Additional detection rules (timezone mismatch, QR codes in images, PDF link extraction).
 - Use the Public Suffix List for domain alignment (currently approximated).
-- External verifications (HELO hostnames, AbuseIPDB, VirusTotal, WhoIS).
-- Advanced analysis (base64/obfuscation detection, high-risk domain matching, URL & attachment scanning).
-- Export options (CSV/JSON), verbose reporting, sensitivity adjustment, caching, and GUI.
+- External verifications (HELO hostnames, AbuseIPDB, VirusTotal, WhoIS, domain age).
+- Export options (CSV), sensitivity adjustment, caching, and GUI.
 
 ---
 ### License

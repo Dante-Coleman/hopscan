@@ -1,3 +1,4 @@
+import re
 from email.message import Message
 from typing import List
 
@@ -21,6 +22,10 @@ def extract_received_hops(msg: Message) -> List[ReceivedHop]:
         hop = ReceivedHop(raw=decoded, index=idx)
         for addr in extract_ips(decoded):
             hop.ips.append(IPInfo(ip=str(addr), version=addr.version, is_public=is_public_ip(addr)))
+        m = re.search(r"\bfrom\s+([^\s;()\[\]]+)", decoded)
+        hop.from_host = m.group(1).rstrip(".") if m else None
+        m = re.search(r"\bby\s+([^\s;()\[\]]+)", decoded)
+        hop.by_host = m.group(1).rstrip(".") if m else None
         # The timestamp follows the LAST semicolon (RFC 5321 section 4.4).
         if ";" in decoded:
             hop.timestamp = parse_email_date(decoded.rsplit(";", 1)[1])

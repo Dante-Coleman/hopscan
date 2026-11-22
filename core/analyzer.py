@@ -3,46 +3,31 @@ from datetime import timedelta
 from typing import Iterable, List, Optional
 
 from .asn_tiers import asn_tiers
-from .models import AnalysisResult, AuthResults, DkimResult, Finding, ReceivedHop
-from .utils import GeoLookup, domains_aligned, extract_domain_from_address, org_domain, parse_address
+from .content import extract_content
+from .heuristics import run_heuristics
+from .models import AnalysisResult, AuthResults, DkimResult, ReceivedHop
+from .scoring import CAP_CATEGORIES, CAP_THRESHOLD, add
+from .utils import GeoLookup, decode_header, domains_aligned, extract_domain_from_address, parse_address
 
 # Receiving servers' clocks are rarely perfectly in sync, so small backwards
 # jumps between hops are normal and are not flagged.
 TIME_TRAVEL_TOLERANCE = timedelta(minutes=5)
 
-SCORES = {
-    "no_auth_results": -10,
-    "spf_pass": +5,
-    "spf_softfail": -5,
-    "spf_fail": -15,
-    "spf_none": -3,
-    "spf_error": -3,
-    "dkim_pass_aligned": +5,
-    "dkim_fail": -15,
-    "dkim_none": -3,
-    "dmarc_pass": +10,
-    "dmarc_fail": -30,
-    "dmarc_none": -5,
-    "dmarc_error": -5,
-    "display_name_spoof": -25,
-    "reply_to_mismatch": -10,
-    "return_path_mismatch": -5,
-    "time_travel": -10,
-}
-
 VERDICTS = [
     # (minimum score, level, verdict, description)
     (15, "good", "High Confidence: Legitimate",
-     "Authentication passed and is aligned with the From domain. Still make sure that domain is one you expect."),
+     "Authentication passed, is aligned with the From domain, and no phishing indicators were found. "
+     "Still make sure that domain is one you expect."),
     (0, "ok", "Likely Safe",
      "No critical issues, but some authentication is missing or weak."),
     (-20, "warn", "Suspicious",
-     "Missing or failed authentication, or mild anomalies detected."),
+     "Failed or missing authentication, or phishing indicators were found. Be careful with links and attachments."),
     (-40, "bad", "Likely Risky",
-     "Multiple authentication problems or header inconsistencies."),
+     "Several authentication problems or phishing indicators. Don't click links or open attachments."),
     (None, "severe", "High Confidence: Fraudulent",
-     "Authentication failures combined with signs of spoofing."),
+     "Strong signs of spoofing or phishing. Don't interact with this email; report or delete it."),
 ]
+_CAPPED_LEVEL = "warn"
 
 
 def detect_time_travel(hops: List[ReceivedHop], tolerance: timedelta = TIME_TRAVEL_TOLERANCE) -> Optional[timedelta]:
@@ -139,6 +124,18 @@ def select_auth_results(values: List[str], trusted_authserv: Iterable[str] = ())
     return merged
 
 
+def apply_alignment(auth: AuthResults, from_domain: Optional[str]) -> None:
+    """
+    Alignment = the domain that passed the check is the same organization as
+    the From address. A pass without alignment only proves the message came
+    from *some* domain (often an email service), not from the one you see.
+    """
+    if auth.spf_domain:
+        auth.spf_aligned = domains_aligned(auth.spf_domain, from_domain)
+    for d in auth.dkim:
+        d.aligned = domains_aligned(d.domain, from_domain) if d.domain else None
+
+
 def enrich_hops(hops: List[ReceivedHop], geo: Optional[GeoLookup]) -> None:
     """Add location and ASN info to each public IP. ASN tier is informational only."""
     if geo is None:
@@ -151,79 +148,62 @@ def enrich_hops(hops: List[ReceivedHop], geo: Optional[GeoLookup]) -> None:
                 info.asn_tier = asn_tiers.get(info.asn_num)
 
 
-def _add(result: AnalysisResult, name: str, detail: str) -> None:
-    result.findings.append(Finding(name=name, points=SCORES[name], detail=detail))
-
-
 def score_auth(result: AnalysisResult) -> None:
     auth = result.auth_results
     if not auth.trusted:
         extra = f" ({auth.ignored_headers} untrusted header(s) ignored)" if auth.ignored_headers else ""
-        _add(result, "no_auth_results", "No Authentication-Results from the receiving server" + extra + ".")
+        add(result, "no_auth_results", "No Authentication-Results from the receiving server" + extra + ".", "auth")
         return
 
     spf = auth.spf or "none"
-    if spf == "pass":
-        _add(result, "spf_pass", f"SPF passed for {auth.spf_domain or 'the envelope sender'}.")
+    if spf == "pass" and auth.spf_aligned:
+        add(result, "spf_pass_aligned", f"SPF passed for {auth.spf_domain}, which matches the From domain.", "auth")
+    elif spf == "pass":
+        add(result, "spf_pass_unaligned",
+            f"SPF passed for {auth.spf_domain or 'the envelope sender'}, which is not the From domain "
+            f"(normal for email services).", "auth")
     elif spf == "softfail":
-        _add(result, "spf_softfail", "SPF softfail: the sending server isn't clearly authorized.")
+        add(result, "spf_softfail", "SPF softfail: the sending server isn't clearly authorized.", "auth")
     elif spf == "fail":
-        _add(result, "spf_fail", "SPF failed: the sending server is not authorized for the envelope domain.")
+        add(result, "spf_fail", "SPF failed: the sending server is not authorized for the envelope domain.", "auth")
     elif spf in ("temperror", "permerror"):
-        _add(result, "spf_error", f"SPF {spf}: the check could not be completed.")
+        add(result, "spf_error", f"SPF {spf}: the check could not be completed.", "auth")
     else:
-        _add(result, "spf_none", f"SPF result was {spf}.")
+        add(result, "spf_none", f"SPF result was {spf}.", "auth")
 
     dkim = auth.dkim_summary or "none"
-    aligned = [d for d in auth.dkim if d.result == "pass" and domains_aligned(d.domain, result.from_domain)]
+    aligned = [d for d in auth.dkim if d.result == "pass" and d.aligned]
+    passing = [d for d in auth.dkim if d.result == "pass"]
     if aligned:
-        _add(result, "dkim_pass_aligned", f"DKIM signature from {aligned[0].domain} passed and matches the From domain.")
+        add(result, "dkim_pass_aligned", f"DKIM signature from {aligned[0].domain} passed and matches the From domain.",
+            "auth")
+    elif passing:
+        add(result, "dkim_pass_unaligned",
+            f"DKIM signature from {passing[0].domain or 'an unknown domain'} passed, but it is not the From domain.",
+            "auth")
     elif dkim == "fail":
-        _add(result, "dkim_fail", "DKIM signature failed: the message was altered or the signature is forged.")
-    elif dkim != "pass":
-        _add(result, "dkim_none", f"DKIM result was {dkim}.")
-    # A passing but unaligned DKIM signature (e.g. an email service's own domain) scores nothing.
+        add(result, "dkim_fail", "DKIM signature failed: the message was altered or the signature is forged.", "auth")
+    else:
+        add(result, "dkim_none", f"DKIM result was {dkim}.", "auth")
 
     dmarc = auth.dmarc or "none"
     if dmarc == "pass":
-        _add(result, "dmarc_pass", f"DMARC passed for {auth.dmarc_domain or result.from_domain}.")
+        add(result, "dmarc_pass", f"DMARC passed for {auth.dmarc_domain or result.from_domain}.", "auth")
     elif dmarc == "fail":
-        _add(result, "dmarc_fail", "DMARC failed: the From domain could not be verified.")
+        add(result, "dmarc_fail", "DMARC failed: the From domain could not be verified.", "auth")
     elif dmarc in ("temperror", "permerror"):
-        _add(result, "dmarc_error", f"DMARC {dmarc}: the check could not be completed.")
+        add(result, "dmarc_error", f"DMARC {dmarc}: the check could not be completed.", "auth")
     else:
-        _add(result, "dmarc_none", f"DMARC result was {dmarc} (the From domain may have no DMARC policy).")
-
-
-_EMBEDDED_ADDRESS = re.compile(r"[\w.+-]+@([\w-]+(?:\.[\w-]+)+)")
-
-
-def score_identity(result: AnalysisResult) -> None:
-    """Checks on the From, Reply-To, and Return-Path headers."""
-    from_domain = result.from_domain
-
-    # "support@paypal.com" <attacker@example.net>
-    if result.from_display_name and from_domain:
-        m = _EMBEDDED_ADDRESS.search(result.from_display_name)
-        if m and not domains_aligned(m.group(1).lower(), from_domain):
-            _add(result, "display_name_spoof",
-                 f"Display name shows {m.group(0)} but the real address is at {from_domain}.")
-
-    if result.reply_to_domain and from_domain and not domains_aligned(result.reply_to_domain, from_domain):
-        _add(result, "reply_to_mismatch",
-             f"Replies go to {result.reply_to_domain}, not the From domain {from_domain}.")
-
-    # Email services often use their own bounce domain, which is fine when DMARC passes.
-    if (result.auth_results.dmarc != "pass" and result.return_path_domain and from_domain
-            and not domains_aligned(result.return_path_domain, from_domain)):
-        _add(result, "return_path_mismatch",
-             f"Return-Path domain {result.return_path_domain} doesn't match From domain {from_domain}.")
+        add(result, "dmarc_none", f"DMARC result was {dmarc} (the From domain may have no DMARC policy).", "auth")
 
 
 def decide_verdict(result: AnalysisResult) -> None:
     result.score = sum(f.points for f in result.findings)
+    capped = any(f.category in CAP_CATEGORIES and f.points <= CAP_THRESHOLD for f in result.findings)
     for minimum, level, verdict, description in VERDICTS:
         if minimum is None or result.score >= minimum:
+            if capped and level in ("good", "ok"):
+                continue  # A strong phishing indicator outweighs good authentication.
             result.verdict_level, result.verdict, result.verdict_description = level, verdict, description
             return
 
@@ -236,6 +216,9 @@ def analyze_email(msg, headers: List, hops: List[ReceivedHop],
 
     enrich_hops(hops, geo)
 
+    result.subject = decode_header(msg.get("Subject")) or None
+    result.date = decode_header(msg.get("Date")) or None
+    result.from_header = decode_header(msg.get("From")) or None
     result.from_display_name, result.from_domain = parse_address(msg.get("From"))
     result.reply_to_domain = extract_domain_from_address(msg.get("Reply-To"))
     result.return_path_domain = extract_domain_from_address(msg.get("Return-Path"))
@@ -243,15 +226,17 @@ def analyze_email(msg, headers: List, hops: List[ReceivedHop],
 
     auth_values = [h.value for h in headers if h.name.lower() == "authentication-results"]
     result.auth_results = select_auth_results(auth_values, trusted_authserv)
-
+    apply_alignment(result.auth_results, result.from_domain)
     score_auth(result)
-    score_identity(result)
+
+    result.content = extract_content(msg)
+    run_heuristics(result)
 
     gap = detect_time_travel(hops)
     if gap is not None:
         result.time_travel = True
-        _add(result, "time_travel",
-             f"Received timestamps go backwards by {gap} (more than {TIME_TRAVEL_TOLERANCE} of clock drift).")
+        add(result, "time_travel",
+            f"Received timestamps go backwards by {gap} (more than {TIME_TRAVEL_TOLERANCE} of clock drift).", "route")
 
     decide_verdict(result)
     return result
